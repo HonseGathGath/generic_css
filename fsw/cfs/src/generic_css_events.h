@@ -46,4 +46,7 @@
 #define GENERIC_CSS_I2C_INIT_ERR_EID 40
 #define GENERIC_CSS_I2C_READ_ERR_EID 41
 
+/* Phase 4 legitimate-drift scenario only - not part of upstream GENERIC_CSS */
+#define GENERIC_CSS_PATCH_APPLIED_EID 50
+
 #endif /* _GENERIC_CSS_EVENTS_H_ */

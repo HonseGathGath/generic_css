@@ -25,4 +25,9 @@
 #define GENERIC_CSS_HK_TLM_MID     0x0910
 #define GENERIC_CSS_DEVICE_TLM_MID 0x0911
 
+/* Internal-Bus IDS project - Phase 4 legitimate-drift scenario: simulates
+ * a sanctioned flight-software patch adding a new benign telemetry point
+ * mid-mission, contrasted with an unsanctioned attack. NOT an attack MID. */
+#define GENERIC_CSS_DIAG_TLM_MID 0x0912
+
 #endif /* _GENERIC_CSS_MSGIDS_H_ */

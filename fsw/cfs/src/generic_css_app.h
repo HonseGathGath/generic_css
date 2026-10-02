@@ -64,6 +64,16 @@ typedef struct
     */
     i2c_bus_info_t Generic_cssI2c; /* Hardware protocol definition */
 
+    /* Phase 4 legitimate-drift scenario only - see generic_css_msg.h */
+    GENERIC_CSS_Diag_tlm_t DiagPkt;
+    uint32                 HkCycleCount;
+    bool                   PatchActive;
+    /* Statistical-maturity reps (2026-10-02): activation cycle threshold is
+    ** overridable via a marker file so each independent capture can use a
+    ** different patch-timing value without a rebuild per rep - same pattern
+    ** as sample/telem_relay's isolation markers. */
+    uint32                 DriftActivationCycle;
+
 } GENERIC_CSS_AppData_t;
 
 /*

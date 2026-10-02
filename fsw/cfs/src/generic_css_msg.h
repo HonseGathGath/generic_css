@@ -62,4 +62,17 @@ typedef struct
 } __attribute__((packed)) GENERIC_CSS_Hk_tlm_t;
 #define GENERIC_CSS_HK_TLM_LNGTH sizeof(GENERIC_CSS_Hk_tlm_t)
 
+/*
+** Phase 4 legitimate-drift scenario only (see generic_css_msgids.h) - a new
+** benign diagnostic point added mid-mission, simulating a flight-software
+** patch. Not part of upstream GENERIC_CSS.
+*/
+typedef struct
+{
+    CFE_MSG_TelemetryHeader_t TlmHeader;
+    uint32                    DiagCounter;
+
+} __attribute__((packed)) GENERIC_CSS_Diag_tlm_t;
+#define GENERIC_CSS_DIAG_TLM_LNGTH sizeof(GENERIC_CSS_Diag_tlm_t)
+
 #endif /* _GENERIC_CSS_MSG_H_ */

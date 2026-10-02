@@ -10,6 +10,14 @@
 ** Include Files
 */
 #include "generic_css_app.h"
+#include <stdio.h>
+#include <unistd.h>
+
+/* Statistical-maturity reps (2026-10-02): optional marker file, checked once
+** at init in the FSW exe cwd, overriding the patch-activation cycle count -
+** same mechanism as sample/telem_relay's isolation markers. */
+#define GENERIC_CSS_DRIFT_CYCLE_MARKER "generic_css_drift_cycle"
+#define GENERIC_CSS_DEFAULT_DRIFT_CYCLE 20
 
 /*
 ** Global Data
@@ -160,6 +168,25 @@ int32 GENERIC_CSS_AppInit(void)
     */
     CFE_MSG_Init(CFE_MSG_PTR(GENERIC_CSS_AppData.DevicePkt.TlmHeader), CFE_SB_ValueToMsgId(GENERIC_CSS_DEVICE_TLM_MID),
                  GENERIC_CSS_DEVICE_TLM_LNGTH);
+
+    /* Phase 4 legitimate-drift scenario only */
+    CFE_MSG_Init(CFE_MSG_PTR(GENERIC_CSS_AppData.DiagPkt.TlmHeader), CFE_SB_ValueToMsgId(GENERIC_CSS_DIAG_TLM_MID),
+                 GENERIC_CSS_DIAG_TLM_LNGTH);
+    GENERIC_CSS_AppData.HkCycleCount = 0;
+    GENERIC_CSS_AppData.PatchActive  = false;
+    GENERIC_CSS_AppData.DriftActivationCycle = GENERIC_CSS_DEFAULT_DRIFT_CYCLE;
+    {
+        FILE *marker_fp = fopen(GENERIC_CSS_DRIFT_CYCLE_MARKER, "r");
+        if (marker_fp != NULL)
+        {
+            int override_cycle = 0;
+            if (fscanf(marker_fp, "%d", &override_cycle) == 1 && override_cycle > 0)
+            {
+                GENERIC_CSS_AppData.DriftActivationCycle = (uint32)override_cycle;
+            }
+            fclose(marker_fp);
+        }
+    }
 
     /*
     ** Always reset all counters during application initialization
@@ -361,6 +388,32 @@ void GENERIC_CSS_ReportHousekeeping(void)
     /* Time stamp and publish housekeeping telemetry */
     CFE_SB_TimeStampMsg((CFE_MSG_Message_t *)&GENERIC_CSS_AppData.HkTelemetryPkt);
     CFE_SB_TransmitMsg((CFE_MSG_Message_t *)&GENERIC_CSS_AppData.HkTelemetryPkt, true);
+
+    /*
+    ** Phase 4 legitimate-drift scenario only: simulate a flight-software
+    ** patch activating mid-mission rather than being present from boot - a
+    ** real patch rolls out mid-mission, not before the spacecraft is even
+    ** flying. Fires one clearly-sanctioned event at the moment of change,
+    ** unlike the attacks (Phase 2/3), which have no such announcement.
+    ** GENERIC_CSS's REQ_HK-triggered HK cycle only fires ~0.25Hz (measured;
+    ** most REQ_HK_MID traffic is actually device-data requests, not HK
+    ** requests specifically) - threshold 20 ~= 80s in, well inside a ~300s
+    ** capture window.
+    */
+    GENERIC_CSS_AppData.HkCycleCount++;
+    if (!GENERIC_CSS_AppData.PatchActive && GENERIC_CSS_AppData.HkCycleCount >= GENERIC_CSS_AppData.DriftActivationCycle)
+    {
+        GENERIC_CSS_AppData.PatchActive = true;
+        CFE_EVS_SendEvent(GENERIC_CSS_PATCH_APPLIED_EID, CFE_EVS_EventType_INFORMATION,
+                          "GENERIC_CSS: [DRIFT] sanctioned flight-software patch applied, new diagnostic "
+                          "telemetry point active");
+    }
+    if (GENERIC_CSS_AppData.PatchActive)
+    {
+        GENERIC_CSS_AppData.DiagPkt.DiagCounter++;
+        CFE_SB_TimeStampMsg((CFE_MSG_Message_t *)&GENERIC_CSS_AppData.DiagPkt);
+        CFE_SB_TransmitMsg((CFE_MSG_Message_t *)&GENERIC_CSS_AppData.DiagPkt, true);
+    }
     return;
 }
 
